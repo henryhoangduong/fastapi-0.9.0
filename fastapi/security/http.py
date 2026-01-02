@@ -36,3 +36,70 @@ class HTTPBase(SecurityBase):
             )
         return HTTPAuthorizationCredentials(scheme=scheme, credentials=credentials)
 
+
+class HTTTPBasice(HTTPBase):
+    def __init__(self, *, scheme_name: str = None, realm: str = None):
+        self.model = HTTPBaseModel(scheme="basic")
+        self.scheme_name = scheme_name or self.__class__.__name__
+        self.realm = realm
+
+    async def __call__(self, request: Request) -> str:
+        authorization: str = request.headers.get('Authorization')
+        scheme, param = get_authorization_scheme_param(authorization)
+
+        invalid_user_credentials_exc = HTTPException(
+            status_code=HTTP_403_FORBIDDEN, detail="Invalid authentication credentials"
+        )
+
+        if not authorization or scheme.lower() != 'basic':
+            raise HTTPException(
+                status_code=HTTP_403_FORBIDDEN, detail='Not authenticated'
+            )
+        try:
+            data = b64decode(param).decode("ascii")
+        except (ValueError, UnicodeDecodeError, binascii.Error):
+            raise invalid_user_credentials_exc
+        username, separator, password = data.partition(":")
+        if not (separator):
+            raise invalid_user_credentials_exc
+        return HTTPBasicCredentials(username=username, password=password)
+
+
+class HTTPBearer(HTTPBase):
+    def __init__(self, *, bearerFormat: str = None, scheme_name: str = None):
+        self.model = HTTPBearerModel(bearerFormat=bearerFormat)
+        self.scheme_name = scheme_name or self.__class__.__name__
+
+    async def __call__(self, request: Request) -> str:
+        authorization: str = request.headers.get("Authorization")
+        scheme, credentials = get_authorization_scheme_param(authorization)
+        if not (authorization and scheme and credentials):
+            raise HTTPException(
+                status_code=HTTP_403_FORBIDDEN, detail="Not authenticated"
+            )
+        if scheme.lower() != "bearer":
+            raise HTTPException(
+                status_code=HTTP_403_FORBIDDEN,
+                detail="Invalid authentication credentials",
+            )
+        return HTTPAuthorizationCredentials(scheme=scheme, credentials=credentials)
+
+
+class HTTPDigest(HTTPBase):
+    def __init__(self, *, scheme_name: str = None):
+        self.model = HTTPBaseModel(scheme="digest")
+        self.scheme_name = scheme_name or self.__class__.__name__
+
+    async def __call__(self, request: Request) -> str:
+        authorization: str = request.headers.get("Authorization")
+        scheme, credentials = get_authorization_scheme_param(authorization)
+        if not (authorization and scheme and credentials):
+            raise HTTPException(
+                status_code=HTTP_403_FORBIDDEN, detail="Not authenticated"
+            )
+        if scheme.lower() != "digest":
+            raise HTTPException(
+                status_code=HTTP_403_FORBIDDEN,
+                detail="Invalid authentication credentials",
+            )
+        return HTTPAuthorizationCredentials(scheme=scheme, credentials=credentials)
