@@ -472,3 +472,35 @@ class APIRouter(routing.Router):
             content_type=content_type,
             name=name,
         )
+
+    def trace(
+        self,
+        path: str,
+        *,
+        response_model: Type[BaseModel] = None,
+        status_code: int = 200,
+        tags: List[str] = None,
+        summary: str = None,
+        description: str = None,
+        response_description: str = "Successful Response",
+        deprecated: bool = None,
+        operation_id: str = None,
+        include_in_schema: bool = True,
+        content_type: Type[Response] = JSONResponse,
+        name: str = None,
+    ) -> Callable:
+        return self.api_route(
+            path=path,
+            response_model=response_model,
+            status_code=status_code,
+            tags=tags or [],
+            summary=summary,
+            description=description,
+            response_description=response_description,
+            deprecated=deprecated,
+            methods=["TRACE"],
+            operation_id=operation_id,
+            include_in_schema=include_in_schema,
+            content_type=content_type,
+            name=name,
+        )
